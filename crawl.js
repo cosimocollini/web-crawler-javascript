@@ -52,30 +52,21 @@ const getHTMLBody = async (currentURL) => {
 };
 
 const crawlPage = async (baseURL, currentURL = baseURL, pages = {}) => {
-    // if this is an offsite URL, bail immediately
     const currentURLObj = new URL(currentURL);
     const baseURLObj = new URL(baseURL);
     if (currentURLObj.hostname !== baseURLObj.hostname) {
         return pages;
     }
 
-    // use a consistent URL format
     const normalizedURL = normalizeURL(currentURL);
 
-    // if we've already visited this page
-    // just increase the count and don't repeat
-    // the http request
     if (pages[normalizedURL] > 0) {
         pages[normalizedURL]++;
         return pages;
     }
-
-    // initialize this page in the map
-    // since it doesn't exist yet
     pages[normalizedURL] = 1;
 
-    // fetch and parse the html of the currentURL
-    console.log(`crawling ${currentURL}`);
+    console.log(`\n🔎 crawling ${currentURL}`);
     let html = '';
     try {
         html = await getHTMLBody(currentURL);
@@ -84,11 +75,10 @@ const crawlPage = async (baseURL, currentURL = baseURL, pages = {}) => {
         return pages;
     }
 
-    // recur through the page's links
     const nextURLs = getURLsFromHTML(html, baseURL);
-    for (const nextURL of nextURLs) {
-        pages = await crawlPage(baseURL, nextURL, pages);
-    }
+    const crawlPromises = nextURLs.map(nextURL => crawlPage(baseURL, nextURL, pages));
+
+    await Promise.all(crawlPromises);
 
     return pages;
 };
